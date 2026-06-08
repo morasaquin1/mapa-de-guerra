@@ -1,0 +1,209 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.hdr{padding:1rem 0 0.75rem;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.hdr-title{font-size:16px;font-weight:500;color:var(--color-text-primary)}
+.hdr-sub{font-size:12px;color:var(--color-text-secondary);margin-top:2px}
+.badge{font-size:11px;padding:3px 10px;border-radius:var(--border-radius-md);background:var(--color-background-info);color:var(--color-text-info)}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:1rem}
+.card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:0.75rem 1rem}
+.card-label{font-size:11px;color:var(--color-text-secondary);margin-bottom:3px}
+.card-val{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.card-sub{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.section-title{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin:0.75rem 0 0.5rem;text-transform:uppercase;letter-spacing:.04em}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
+.chart-box{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:0.875rem}
+.chart-title{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px}
+.heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:1rem}
+.hm-cell{aspect-ratio:1;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--color-text-secondary);cursor:default}
+.habits-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:1rem}
+.habit-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:0.75rem 1rem}
+.habit-label{font-size:12px;color:var(--color-text-secondary);margin-bottom:6px}
+.habit-bar-bg{height:5px;background:var(--color-border-tertiary);border-radius:99px;overflow:hidden}
+.habit-bar-fill{height:5px;border-radius:99px}
+.habit-stats{display:flex;justify-content:space-between;margin-top:4px;font-size:11px}
+.table-box{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:0.875rem;overflow-x:auto;margin-bottom:1rem}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+th{text-align:left;font-weight:500;font-size:11px;color:var(--color-text-secondary);padding:5px 6px;border-bottom:0.5px solid var(--color-border-tertiary)}
+td{padding:5px 6px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+tr:last-child td{border-bottom:none}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%}
+@media(max-width:500px){.charts{grid-template-columns:1fr}}
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden">Mapa de Guerra 2026 — Tracker Mayo con métricas de productividad, hábitos y prospección</h2>
+
+<div class="hdr">
+  <div>
+    <div class="hdr-title">Mapa de Guerra 2026</div>
+    <div class="hdr-sub">Planeador de vida — Mayo 2026 · 31 días</div>
+  </div>
+  <span class="badge">Mayo completo</span>
+</div>
+
+<div class="metrics" id="metrics-grid"></div>
+
+<div class="section-title">Productividad diaria</div>
+<div class="charts">
+  <div class="chart-box">
+    <div class="chart-title">Deep Work (minutos/día)</div>
+    <div style="position:relative;height:160px"><canvas id="dwChart" role="img" aria-label="Deep work por día en mayo"></canvas></div>
+  </div>
+  <div class="chart-box">
+    <div class="chart-title">Energía diaria (0–100)</div>
+    <div style="position:relative;height:160px"><canvas id="enChart" role="img" aria-label="Nivel de energía por día en mayo"></canvas></div>
+  </div>
+</div>
+
+<div class="section-title">Prospección OB</div>
+<div class="charts">
+  <div class="chart-box">
+    <div class="chart-title">DMs enviados por día</div>
+    <div style="position:relative;height:150px"><canvas id="dmsChart" role="img" aria-label="DMs OB Day por día"></canvas></div>
+  </div>
+  <div class="chart-box">
+    <div class="chart-title">Cold calling</div>
+    <div style="position:relative;height:150px"><canvas id="ccChart" role="img" aria-label="Cold calling sin respuestas vs respuestas"></canvas></div>
+  </div>
+</div>
+
+<div class="section-title">Hábitos — Heatmap Mayo</div>
+<div id="habits-section"></div>
+
+<div class="section-title">Log diario</div>
+<div class="table-box">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:13%">Día</th>
+        <th style="width:14%">Deep Work</th>
+        <th style="width:10%">DMs</th>
+        <th style="width:10%">CC</th>
+        <th style="width:10%">Lect.</th>
+        <th style="width:9%">Energía</th>
+        <th style="width:9%">NoFap</th>
+        <th style="width:9%">Med.</th>
+        <th style="width:9%">J.V</th>
+        <th style="width:7%">Agend.</th>
+      </tr>
+    </thead>
+    <tbody id="tbl-body"></tbody>
+  </table>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const DATA = [{"fecha":"May-1","deepwork":233,"dms":17,"coldcall":33,"respuestas":4,"llamadas":0,"entrevistas":0,"lectura":10,"energia":60,"nofap":true,"meditacion":false,"jv":false,"prospeccion":true,"checkin":true,"todo":true},{"fecha":"May-2","deepwork":301,"dms":50,"coldcall":11,"respuestas":5,"llamadas":1,"entrevistas":0,"lectura":10,"energia":70,"nofap":true,"meditacion":false,"jv":false,"prospeccion":true,"checkin":true,"todo":true},{"fecha":"May-3","deepwork":313,"dms":40,"coldcall":17,"respuestas":1,"llamadas":0,"entrevistas":1,"lectura":10,"energia":50,"nofap":false,"meditacion":false,"jv":false,"prospeccion":true,"checkin":true,"todo":true},{"fecha":"May-4","deepwork":283,"dms":33,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":40,"nofap":true,"meditacion":false,"jv":true,"prospeccion":true,"checkin":true,"todo":true},{"fecha":"May-5","deepwork":469,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":10,"energia":30,"nofap":false,"meditacion":false,"jv":false,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-6","deepwork":261,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":10,"energia":10,"nofap":true,"meditacion":false,"jv":false,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-7","deepwork":209,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":60,"nofap":true,"meditacion":false,"jv":true,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-8","deepwork":87,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":60,"nofap":false,"meditacion":false,"jv":false,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-9","deepwork":463,"dms":0,"coldcall":9,"respuestas":3,"llamadas":0,"entrevistas":0,"lectura":10,"energia":70,"nofap":true,"meditacion":false,"jv":false,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-10","deepwork":137,"dms":0,"coldcall":11,"respuestas":1,"llamadas":0,"entrevistas":0,"lectura":0,"energia":80,"nofap":true,"meditacion":false,"jv":true,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-11","deepwork":469,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":70,"nofap":false,"meditacion":false,"jv":false,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-12","deepwork":567,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":191,"energia":50,"nofap":false,"meditacion":false,"jv":true,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-13","deepwork":530,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":60,"nofap":true,"meditacion":false,"jv":false,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-14","deepwork":317,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":60,"nofap":false,"meditacion":false,"jv":false,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-15","deepwork":400,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":60,"nofap":true,"meditacion":false,"jv":false,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-16","deepwork":166,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":60,"nofap":false,"meditacion":false,"jv":false,"prospeccion":false,"checkin":false,"todo":false},{"fecha":"May-17","deepwork":75,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":0,"nofap":true,"meditacion":false,"jv":false,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-18","deepwork":0,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":0,"nofap":true,"meditacion":false,"jv":false,"prospeccion":false,"checkin":false,"todo":false},{"fecha":"May-19","deepwork":0,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":0,"nofap":true,"meditacion":false,"jv":false,"prospeccion":false,"checkin":false,"todo":false},{"fecha":"May-20","deepwork":0,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":0,"nofap":true,"meditacion":false,"jv":false,"prospeccion":false,"checkin":false,"todo":false},{"fecha":"May-21","deepwork":0,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":50,"nofap":true,"meditacion":false,"jv":false,"prospeccion":false,"checkin":false,"todo":false},{"fecha":"May-22","deepwork":0,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":50,"nofap":true,"meditacion":false,"jv":false,"prospeccion":false,"checkin":false,"todo":false},{"fecha":"May-23","deepwork":0,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":80,"nofap":true,"meditacion":false,"jv":true,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-24","deepwork":720,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":20,"energia":70,"nofap":true,"meditacion":true,"jv":true,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-25","deepwork":454,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":186,"energia":70,"nofap":false,"meditacion":true,"jv":false,"prospeccion":false,"checkin":true,"todo":false},{"fecha":"May-26","deepwork":0,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":170,"energia":70,"nofap":true,"meditacion":true,"jv":false,"prospeccion":false,"checkin":true,"todo":false},{"fecha":"May-27","deepwork":0,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":155,"energia":70,"nofap":true,"meditacion":false,"jv":false,"prospeccion":false,"checkin":true,"todo":true},{"fecha":"May-28","deepwork":0,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":70,"nofap":true,"meditacion":false,"jv":false,"prospeccion":false,"checkin":true,"todo":false},{"fecha":"May-29","deepwork":0,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":60,"nofap":false,"meditacion":false,"jv":false,"prospeccion":false,"checkin":false,"todo":false},{"fecha":"May-30","deepwork":0,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":70,"nofap":true,"meditacion":false,"jv":true,"prospeccion":false,"checkin":true,"todo":false},{"fecha":"May-31","deepwork":0,"dms":0,"coldcall":0,"respuestas":0,"llamadas":0,"entrevistas":0,"lectura":0,"energia":50,"nofap":true,"meditacion":false,"jv":false,"prospeccion":false,"checkin":true,"todo":false}];
+
+const days = DATA.map(d=>d.fecha.replace('May-',''));
+const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+const tc = isDark?'#aaa':'#888';
+const gc = isDark?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)';
+
+const totalDW = DATA.reduce((a,r)=>a+r.deepwork,0);
+const avgDW = Math.round(totalDW/DATA.length);
+const totalDMS = DATA.reduce((a,r)=>a+r.dms,0);
+const totalCC = DATA.reduce((a,r)=>a+r.coldcall,0);
+const totalLect = DATA.reduce((a,r)=>a+r.lectura,0);
+const avgEn = Math.round(DATA.reduce((a,r)=>a+r.energia,0)/DATA.filter(r=>r.energia>0).length);
+const nofapDays = DATA.filter(r=>r.nofap).length;
+const medDays = DATA.filter(r=>r.meditacion).length;
+const jvDays = DATA.filter(r=>r.jv).length;
+const agendadas = DATA.reduce((a,r)=>a+r.llamadas,0);
+const entrevistas = DATA.reduce((a,r)=>a+r.entrevistas,0);
+
+document.getElementById('metrics-grid').innerHTML = [
+  {label:'Deep Work total',val:Math.round(totalDW/60)+'h',sub:'~'+avgDW+' min/día'},
+  {label:'DMs enviados',val:totalDMS,sub:'prospección OB'},
+  {label:'Cold Calls',val:totalCC,sub:agendadas+' llamada agendada'},
+  {label:'Páginas leídas',val:totalLect,sub:'lectura crítica'},
+  {label:'Energía prom.',val:avgEn+'%',sub:'días con registro'},
+  {label:'NoFap',val:nofapDays+'/31',sub:'días'},
+  {label:'Meditación',val:medDays+'/31',sub:'días'},
+  {label:'J.V',val:jvDays+'/31',sub:'días'},
+].map(m=>`<div class="card"><div class="card-label">${m.label}</div><div class="card-val">${m.val}</div><div class="card-sub">${m.sub}</div></div>`).join('');
+
+const baseOpts = (yLabel)=>({
+  responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false}},
+  scales:{
+    x:{ticks:{color:tc,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:10},grid:{display:false}},
+    y:{ticks:{color:tc,font:{size:9},callback:v=>yLabel?v+yLabel:v},grid:{color:gc}}
+  }
+});
+
+new Chart(document.getElementById('dwChart'),{
+  type:'bar',
+  data:{labels:days,datasets:[{data:DATA.map(d=>d.deepwork),backgroundColor:DATA.map(d=>d.deepwork>=300?'#378ADD':'#85B7EB'),borderWidth:0,borderRadius:2}]},
+  options:baseOpts('m')
+});
+
+new Chart(document.getElementById('enChart'),{
+  type:'line',
+  data:{labels:days,datasets:[{data:DATA.map(d=>d.energia),borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.1)',tension:0.4,fill:true,pointRadius:2,pointBackgroundColor:'#1D9E75'}]},
+  options:{...baseOpts('%'),scales:{x:{ticks:{color:tc,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:10},grid:{display:false}},y:{min:0,max:100,ticks:{color:tc,font:{size:9},callback:v=>v+'%'},grid:{color:gc}}}}
+});
+
+new Chart(document.getElementById('dmsChart'),{
+  type:'bar',
+  data:{labels:days,datasets:[{data:DATA.map(d=>d.dms),backgroundColor:'#7F77DD',borderWidth:0,borderRadius:2}]},
+  options:baseOpts()
+});
+
+new Chart(document.getElementById('ccChart'),{
+  type:'bar',
+  data:{
+    labels:days,
+    datasets:[
+      {label:'Sin respuesta',data:DATA.map(d=>d.coldcall),backgroundColor:'#D85A30',borderWidth:0,borderRadius:2},
+      {label:'Respuestas',data:DATA.map(d=>d.respuestas),backgroundColor:'#1D9E75',borderWidth:0,borderRadius:2}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{stacked:true,ticks:{color:tc,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:10},grid:{display:false}},
+      y:{stacked:true,ticks:{color:tc,font:{size:9}},grid:{color:gc}}
+    }
+  }
+});
+
+const HABITS = [
+  {key:'nofap',label:'NoFap',color:'#378ADD'},
+  {key:'meditacion',label:'Meditación',color:'#1D9E75'},
+  {key:'jv',label:'Journal / Visualización',color:'#7F77DD'},
+  {key:'prospeccion',label:'Prospección OB',color:'#D85A30'},
+  {key:'checkin',label:'Check-in clientes',color:'#BA7517'},
+  {key:'todo',label:'To-do completado',color:'#639922'},
+];
+
+const habHtml = HABITS.map(h=>{
+  const count = DATA.filter(d=>d[h.key]).length;
+  const pct = Math.round(count/31*100);
+  const cells = DATA.map(d=>`<div class="hm-cell" style="background:${d[h.key]?h.color+'cc':'var(--color-border-tertiary)'};" title="${d.fecha}: ${d[h.key]?'✓':'✗'}"></div>`).join('');
+  return `<div class="habit-card">
+    <div class="habit-label">${h.label} — <strong style="color:var(--color-text-primary)">${count}/31 días</strong></div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">${cells}</div>
+    <div class="habit-bar-bg"><div class="habit-bar-fill" style="width:${pct}%;background:${h.color}"></div></div>
+    <div class="habit-stats"><span style="color:var(--color-text-secondary)">${pct}% consistencia</span></div>
+  </div>`;
+}).join('');
+document.getElementById('habits-section').innerHTML = `<div class="habits-grid">${habHtml}</div>`;
+
+document.getElementById('tbl-body').innerHTML = DATA.map(r=>{
+  const dot = (v,c='#1D9E75')=>`<span class="dot" style="background:${v?c:'var(--color-border-tertiary)'}"></span>`;
+  return `<tr>
+    <td>${r.fecha}</td>
+    <td>${r.deepwork?r.deepwork+'m':'-'}</td>
+    <td>${r.dms||'-'}</td>
+    <td>${r.coldcall||'-'}</td>
+    <td>${r.lectura||'-'}</td>
+    <td>${r.energia||'-'}</td>
+    <td>${dot(r.nofap,'#378ADD')}</td>
+    <td>${dot(r.meditacion,'#1D9E75')}</td>
+    <td>${dot(r.jv,'#7F77DD')}</td>
+    <td>${r.llamadas||'-'}</td>
+  </tr>`;
+}).join('');
+</script>
