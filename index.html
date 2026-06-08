@@ -845,30 +845,61 @@ function filterTbl() {
     : `<tr><td colspan="${KEYS.length}" class="no-rows">// SIN RESULTADOS //</td></tr>`;
 }
 
+// ─── JSONP (bypasses CORS 100%) ────────────────────────────────
+function jsonpLoad(url) {
+  return new Promise((resolve, reject) => {
+    const cbName = '__gs_' + Math.random().toString(36).slice(2, 9);
+    const script = document.createElement('script');
+
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('TIMEOUT — el Apps Script no respondió en 20s'));
+    }, 20000);
+
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    window[cbName] = (data) => {
+      cleanup();
+      if (data && data.error) reject(new Error('Apps Script error: ' + data.error));
+      else resolve(data);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('No se pudo conectar. Verificá que el Apps Script esté activo.'));
+    };
+
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+    document.head.appendChild(script);
+  });
+}
+
 // ─── BOOT ──────────────────────────────────────────────────────
 async function boot() {
   hide('dashboard');
   hide('s-error');
   show('s-loading');
-  document.getElementById('dot').className   = 'dot';
-  document.getElementById('status-txt').textContent = 'CARGANDO...';
+  document.getElementById('dot').className            = 'dot';
+  document.getElementById('status-txt').textContent   = 'CARGANDO...';
 
   try {
-    const res = await fetch(APPS_SCRIPT_URL);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // JSONP bypasses all CORS restrictions — no fetch needed
+    let json = await jsonpLoad(APPS_SCRIPT_URL);
 
-    let json = await res.json();
-
-    // Accept array or {data:[...]}
     if (!Array.isArray(json)) {
-      if (json.data && Array.isArray(json.data)) json = json.data;
-      else throw new Error('Formato inesperado del Apps Script');
+      if (json && json.data && Array.isArray(json.data)) json = json.data;
+      else throw new Error('El Apps Script no devuelve un array. Actualizá el código del script (ver instrucciones).');
     }
 
     if (!json.length) throw new Error('El Sheet está vacío o sin filas válidas');
 
-    // Remove fully empty rows
-    const clean = json.filter(r => Object.values(r).some(v => v !== '' && v !== null && v !== undefined));
+    const clean = json.filter(r =>
+      Object.values(r).some(v => v !== '' && v !== null && v !== undefined)
+    );
     if (!clean.length) throw new Error('Sin datos válidos en el Sheet');
 
     KEYS = Object.keys(clean[0]);
@@ -894,8 +925,7 @@ async function boot() {
     show('s-error');
     document.getElementById('dot').className          = 'dot error';
     document.getElementById('status-txt').textContent = 'ERROR';
-    document.getElementById('err-msg').textContent    =
-      `⚠ ${err.message}\n\nVerificá que el Apps Script esté desplegado como "Aplicación web → Cualquier persona puede acceder" y que la URL sea correcta.`;
+    document.getElementById('err-msg').textContent    = '⚠ ' + err.message;
   }
 }
 
