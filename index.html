@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAPA DE GUERRA 2026</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:        #080c10;
+      --bg2:       #0d1117;
+      --bg3:       #161b22;
+      --border:    #21262d;
+      --green:     #39d353;
+      --green-dim: #1a4a28;
+      --amber:     #f0a500;
+      --red:       #f85149;
+      --blue:      #58a6ff;
+      --purple:    #a371f7;
+      --text:      #e6edf3;
+      --text-dim:  #7d8590;
+      --text-muted:#484f58;
+      --mono:      'Share Tech Mono', monospace;
+      --sans:      'Barlow Condensed', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ─────────────────────────────────────── */
+    .header {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 12px; }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      flex-shrink: 0;
+      transition: background 0.5s;
+    }
+    .status-dot.live { background: var(--green); animation: pulse 2s infinite; }
+    .status-dot.error { background: var(--red); }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; box-shadow: 0 0 0 0 #39d35340; }
+      50%      { opacity: .7; box-shadow: 0 0 0 6px transparent; }
+    }
+
+    .header h1 {
+      font-family: var(--sans);
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 5px;
+      color: var(--text);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-meta {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-align: right;
+      line-height: 1.6;
+    }
+    .header-meta span { color: var(--green); }
+
+    .refresh-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.2s;
+    }
+    .refresh-btn:hover {
+      border-color: var(--green);
+      color: var(--green);
+    }
+    .refresh-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ── MAIN ───────────────────────────────────────── */
+    .main {
+      padding: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* ── LOADING ────────────────────────────────────── */
+    .loading {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-dim);
+    }
+    .loading-text {
+      font-size: 11px;
+      letter-spacing: 4px;
+      margin-bottom: 20px;
+    }
+    .loading-bar {
+      width: 220px;
+      height: 2px;
+      background: var(--border);
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      border-radius: 2px;
+    }
+    .loading-bar::after {
+      content: '';
+      position: absolute;
+      left: -60%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      animation: sweep 1.4s ease-in-out infinite;
+    }
+    @keyframes sweep {
+      from { left: -60%; }
+      to   { left: 100%; }
+    }
+
+    /* ── SECTION LABEL ──────────────────────────────── */
+    .section-label {
+      font-size: 9px;
+      letter-spacing: 4px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin: 20px 0 10px;
+      border-left: 2px solid var(--green-dim);
+      padding-left: 8px;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    /* ── METRIC CARDS ───────────────────────────────── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .metric-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      transition: border-color 0.25s;
+    }
+    .metric-card:hover { border-color: var(--green-dim); }
+
+    .metric-label {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .metric-value {
+      font-size: 30px;
+      line-height: 1;
+      font-weight: bold;
+      color: var(--text);
+    }
+    .metric-value.green  { color: var(--green); }
+    .metric-value.amber  { color: var(--amber); }
+    .metric-value.red    { color: var(--red); }
+    .metric-value.blue   { color: var(--blue); }
+
+    .metric-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    .prog-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .prog-bar {
+      flex: 1; height: 2px;
+      background: var(--bg3);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .prog-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 1.2s ease;
+    }
+    .prog-fill.green  { background: var(--green); }
+    .prog-fill.amber  { background: var(--amber); }
+    .prog-fill.red    { background: var(--red); }
+    .prog-pct {
+      font-size: 10px;
+      color: var(--text-dim);
+      min-width: 32px;
+      text-align: right;
+    }
+
+    /* ── CHARTS ─────────────────────────────────────── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+    @media (max-width: 900px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+
+    .chart-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+    }
+    .chart-card.full { grid-column: 1 / -1; }
+
+    .chart-title {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    /* ── TABLE ──────────────────────────────────────── */
+    .table-section {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .table-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .table-count {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+    }
+
+    .table-search {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 4px;
+      outline: none;
+      width: 200px;
+      transition: border-color 0.2s;
+    }
+    .table-search:focus { border-color: var(--green-dim); }
+    .table-search::placeholder { color: var(--text-muted); }
+
+    .table-wrap {
+      overflow-x: auto;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+
+    thead tr {
+      position: sticky;
+      top: 0;
+      background: var(--bg3);
+      z-index: 5;
+    }
+
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    th:hover { color: var(--text); }
+
+    td {
+      padding: 7px 12px;
+      border-bottom: 1px solid var(--bg3);
+      white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg3); }
+
+    .td-bool-yes { color: var(--green); font-weight: bold; }
+    .td-bool-no  { color: var(--text-muted); }
+    .td-num      { color: var(--blue); font-variant-numeric: tabular-nums; }
+    .td-date     { color: var(--text-dim); }
+
+    /* ── ERROR ───────────────────────────────────────── */
+    .error-box {
+      background: #120808;
+      border: 1px solid #5a1a1a;
+      border-radius: 6px;
+      padding: 24px;
+      margin: 20px 0;
+    }
+    .error-title {
+      color: var(--red);
+      font-size: 11px;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+    .error-body {
+      color: var(--text-dim);
+      font-size: 11px;
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="status-dot" id="statusDot"></div>
+    <h1>MAPA DE GUERRA 2026</h1>
+  </div>
+  <div class="header-right">
+    <div class="header-meta" id="headerMeta">
+      CONECTANDO...<br><span>—</span>
+    </div>
+    <button class="refresh-btn" id="refreshBtn" onclick="loadData()">↻ SYNC</button>
+  </div>
+</div>
+
+<div class="main" id="mainContent">
+  <div class="loading">
+    <div class="loading-text">CONECTANDO CON BASE DE DATOS</div>
+    <div class="loading-bar"></div>
+  </div>
+</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxR1uXhW3D8259rgBzT51ldJmpg87ZNjnmG1UhmCIZmXSWdNx2GMyB-No9vk_wCuXg5/exec';
+
+let allData    = [];
+let columns    = [];
+let sortCol    = null;
+let sortDir    = -1;
+let filterVal  = '';
+let activeCharts = {};
+
+// ── HELPERS ─────────────────────────────────────────────────────────────────
+
+function isDateLike(v) {
+  if (!v && v !== 0) return false;
+  if (v instanceof Date) return true;
+  const s = String(v).trim();
+  return /^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(s) ||
+         /^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}$/.test(s) ||
+         /^[a-z]{3}[\s-]\d{1,2}[\s-]\d{2,4}$/i.test(s);
+}
+
+function boolValue(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const s = String(v).trim().toLowerCase();
+  if (['1','true','yes','si','sí','x','✓','✔','ok','verdadero'].includes(s)) return true;
+  if (['0','false','no','-','falso'].includes(s)) return false;
+  return null;
+}
+
+function isNumeric(v) {
+  if (v === null || v === undefined || v === '') return false;
+  return !isNaN(parseFloat(v)) && isFinite(String(v).replace(',', '.'));
+}
+
+function toNum(v) { return parseFloat(String(v).replace(',', '.')); }
+
+function fmtDate(v) {
+  if (!v) return '—';
+  try {
+    const d = new Date(v);
+    if (isNaN(d)) return String(v);
+    return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+  } catch { return String(v); }
+}
+
+function fmtNum(v, decimals = 0) {
+  const n = toNum(v);
+  if (isNaN(n)) return '—';
+  return n.toLocaleString('es-AR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+// ── COLUMN ANALYSIS ──────────────────────────────────────────────────────────
+
+function analyzeColumns(data) {
+  if (!data.length) return [];
+  const keys = Object.keys(data[0]);
+
+  return keys.map(key => {
+    const vals = data.map(r => r[key]).filter(v => v !== null && v !== undefined && v !== '');
+    if (!vals.length) return { key, type: 'text' };
+
+    // Date first
+    if (vals.filter(v => isDateLike(v)).length / vals.length > 0.6)
+      return { key, type: 'date' };
+
+    const numCount  = vals.filter(v => isNumeric(v)).length;
+    const numRatio  = numCount / vals.length;
+
+    if (numRatio > 0.65) {
+      const nums   = vals.filter(v => isNumeric(v)).map(toNum);
+      const unique = [...new Set(nums)];
+      // purely binary: only 0 and 1
+      if (unique.length <= 2 && unique.every(n => n === 0 || n === 1))
+        return { key, type: 'bool' };
+      return { key, type: 'number' };
+    }
+
+    // Text booleans
+    const boolCount = vals.filter(v => boolValue(v) !== null).length;
+    if (boolCount / vals.length > 0.6)
+      return { key, type: 'bool' };
+
+    return { key, type: 'text' };
+  });
+}
+
+// ── METRICS ──────────────────────────────────────────────────────────────────
+
+function buildMetrics(data, cols) {
+  const out = [];
+  const total = data.length;
+
+  // Days recorded
+  out.push({ label: 'Días registrados', value: total, color: '', sub: '' });
+
+  cols.filter(c => c.type === 'number').forEach(col => {
+    const nums = data
+      .map(r => toNum(r[col.key]))
+      .filter(n => !isNaN(n) && n > 0);
+    if (!nums.length) return;
+
+    const sum  = nums.reduce((a, b) => a + b, 0);
+    const avg  = sum / nums.length;
+    const max  = Math.max(...nums);
+    const keyL = col.key.toLowerCase();
+
+    const isMin  = keyL.includes('min') || keyL.includes('work') || keyL.includes('deep') || keyL.includes('hora');
+    const isEner = keyL.includes('energ');
+
+    if (isMin) {
+      out.push({
+        label: col.key,
+        value: `${Math.round(sum / 60)}h`,
+        color: 'green',
+        sub: `Prom ${Math.round(avg)} min/día · Máx ${max} min`
+      });
+    } else if (isEner) {
+      const c = avg >= 7 ? 'green' : avg >= 5 ? 'amber' : 'red';
+      out.push({ label: col.key, value: avg.toFixed(1), color: c, sub: `Promedio / 10 · Máx ${max}` });
+    } else {
+      out.push({ label: col.key, value: fmtNum(sum), color: 'blue', sub: `Prom ${avg.toFixed(1)}/día · Máx ${max}` });
+    }
+  });
+
+  cols.filter(c => c.type === 'bool').forEach(col => {
+    const vals = data.map(r => {
+      const v = r[col.key];
+      const b = boolValue(v);
+      if (b !== null) return b;
+      if (isNumeric(v)) return toNum(v) > 0;
+      return null;
+    }).filter(v => v !== null);
+
+    const yes = vals.filter(Boolean).length;
+    const pct = vals.length ? Math.round(yes / vals.length * 100) : 0;
+    const c   = pct >= 70 ? 'green' : pct >= 40 ? 'amber' : 'red';
+
+    out.push({ label: col.key, value: `${yes}/${vals.length}`, color: c, sub: `Días cumplidos`, progress: pct, progColor: c });
+  });
+
+  return out;
+}
+
+// ── CHARTS ───────────────────────────────────────────────────────────────────
+
+const PAL = ['#39d353','#58a6ff','#f0a500','#f85149','#a371f7','#3fb950','#ffa657'];
+
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: true,
+  animation: { duration: 700 },
+  plugins: {
+    legend: {
+      labels: { color: '#7d8590', font: { family: 'Share Tech Mono', size: 10 }, boxWidth: 10, padding: 12 }
+    },
+    tooltip: {
+      backgroundColor: '#0d1117',
+      borderColor: '#21262d',
+      borderWidth: 1,
+      titleColor: '#e6edf3',
+      bodyColor: '#7d8590',
+      titleFont: { family: 'Share Tech Mono', size: 11 },
+      bodyFont:  { family: 'Share Tech Mono', size: 10 },
+      padding: 10
+    }
+  },
+  scales: {
+    x: {
+      ticks: { color: '#484f58', font: { family: 'Share Tech Mono', size: 9 }, maxTicksLimit: 14 },
+      grid:  { color: '#0d1117' }
+    },
+    y: {
+      ticks: { color: '#484f58', font: { family: 'Share Tech Mono', size: 9 } },
+      grid:  { color: '#161b22' }
+    }
+  }
+};
+
+function destroyCharts() {
+  Object.values(activeCharts).forEach(c => c.destroy());
+  activeCharts = {};
+}
+
+function buildCharts(data, cols) {
+  destroyCharts();
+  const grid = document.getElementById('chartsGrid');
+  grid.innerHTML = '';
+
+  const dateCol = cols.find(c => c.type === 'date');
+  const numCols = cols.filter(c => c.type === 'number');
+  const boolCols = cols.filter(c => c.type === 'bool');
+  const labels  = data.map((r, i) => dateCol ? fmtDate(r[dateCol.key]) : `D${i + 1}`);
+
+  // ─ Line chart: numeric metrics
+  if (numCols.length) {
+    const card = document.createElement('div');
+    card.className = 'chart-card full';
+    card.innerHTML = '<div class="chart-title">MÉTRICAS NUMÉRICAS — EVOLUCIÓN DIARIA</div><canvas id="cNum" height="90"></canvas>';
+    grid.appendChild(card);
+
+    const ctx = document.getElementById('cNum').getContext('2d');
+    activeCharts.num = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: numCols.map((col, i) => ({
+          label: col.key,
+          data: data.map(r => isNumeric(r[col.key]) ? toNum(r[col.key]) : null),
+          borderColor: PAL[i % PAL.length],
+          backgroundColor: PAL[i % PAL.length] + '18',
+          tension: 0.35, pointRadius: 3, pointHoverRadius: 5,
+          fill: false, borderWidth: 2, spanGaps: true
+        }))
+      },
+      options: { ...CHART_DEFAULTS, interaction: { mode: 'index', intersect: false } }
+    });
+  }
+
+  // ─ Bar chart: boolean habits
+  if (boolCols.length) {
+    const card = document.createElement('div');
+    card.className = 'chart-card';
+    card.innerHTML = '<div class="chart-title">HÁBITOS — % DE CUMPLIMIENTO</div><canvas id="cBool" height="200"></canvas>';
+    grid.appendChild(card);
+
+    const boolLabels = boolCols.map(c => c.key);
+    const boolPcts   = boolCols.map(col => {
+      const vals = data.map(r => {
+        const v = r[col.key];
+        const b = boolValue(v);
+        if (b !== null) return b ? 1 : 0;
+        if (isNumeric(v)) return toNum(v) > 0 ? 1 : 0;
+        return 0;
+      });
+      return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 100);
+    });
+
+    const ctx2 = document.getElementById('cBool').getContext('2d');
+    activeCharts.bool = new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: boolLabels,
+        datasets: [{
+          label: '% días cumplidos',
+          data: boolPcts,
+          backgroundColor: boolPcts.map(p => p >= 70 ? '#39d35360' : p >= 40 ? '#f0a50060' : '#f8514960'),
+          borderColor:     boolPcts.map(p => p >= 70 ? '#39d353'   : p >= 40 ? '#f0a500'   : '#f85149'),
+          borderWidth: 1, borderRadius: 3
+        }]
+      },
+      options: {
+        ...CHART_DEFAULTS,
+        scales: { ...CHART_DEFAULTS.scales, y: { ...CHART_DEFAULTS.scales.y, max: 100, min: 0 } }
+      }
+    });
+  }
+
+  // ─ Weekly totals for first numeric col
+  if (numCols.length && dateCol) {
+    const col   = numCols[0];
+    const weeks = {};
+    data.forEach(r => {
+      const d = new Date(r[dateCol.key]);
+      if (isNaN(d)) return;
+      const wk = `S${Math.ceil(d.getDate() / 7)}`;
+      weeks[wk] = (weeks[wk] || 0) + (isNumeric(r[col.key]) ? toNum(r[col.key]) : 0);
+    });
+    const wkLabels = Object.keys(weeks);
+    const wkVals   = Object.values(weeks);
+
+    const card = document.createElement('div');
+    card.className = 'chart-card';
+    card.innerHTML = `<div class="chart-title">${col.key.toUpperCase()} — TOTALES SEMANALES</div><canvas id="cWeek" height="200"></canvas>`;
+    grid.appendChild(card);
+
+    const ctx3 = document.getElementById('cWeek').getContext('2d');
+    activeCharts.week = new Chart(ctx3, {
+      type: 'bar',
+      data: {
+        labels: wkLabels,
+        datasets: [{
+          label: col.key,
+          data: wkVals,
+          backgroundColor: '#39d35340',
+          borderColor: '#39d353',
+          borderWidth: 1, borderRadius: 4
+        }]
+      },
+      options: CHART_DEFAULTS
+    });
+  }
+}
+
+// ── TABLE ────────────────────────────────────────────────────────────────────
+
+window.setSort = function(key) {
+  if (sortCol === key) sortDir *= -1;
+  else { sortCol = key; sortDir = -1; }
+  renderTable();
+};
+
+window.applyFilter = function(val) {
+  filterVal = val;
+  renderTable();
+};
+
+function renderTable() {
+  if (!allData.length) return;
+
+  let rows = [...allData];
+
+  if (filterVal.trim()) {
+    const q = filterVal.toLowerCase();
+    rows = rows.filter(r => Object.values(r).some(v => String(v ?? '').toLowerCase().includes(q)));
+  }
+
+  if (sortCol) {
+    rows.sort((a, b) => {
+      const va = a[sortCol], vb = b[sortCol];
+      if (isNumeric(va) && isNumeric(vb)) return (toNum(va) - toNum(vb)) * sortDir;
+      return String(va ?? '').localeCompare(String(vb ?? '')) * sortDir;
+    });
+  }
+
+  const th = col => {
+    const arr = sortCol === col.key ? (sortDir === 1 ? ' ▲' : ' ▼') : '';
+    return `<th onclick="setSort('${col.key}')">${col.key}${arr}</th>`;
+  };
+
+  const cell = (col, r) => {
+    const v = r[col.key];
+    if (col.type === 'date')   return `<td class="td-date">${fmtDate(v)}</td>`;
+    if (col.type === 'number') {
+      const n = toNum(v);
+      return `<td class="td-num">${isNaN(n) ? '—' : n.toLocaleString('es-AR')}</td>`;
+    }
+    if (col.type === 'bool') {
+      const b = boolValue(v);
+      const t = b === true || (b === null && isNumeric(v) && toNum(v) > 0);
+      return `<td class="${t ? 'td-bool-yes' : 'td-bool-no'}">${t ? '✓' : '—'}</td>`;
+    }
+    return `<td>${v ?? '—'}</td>`;
+  };
+
+  document.getElementById('tableCount').textContent = `${rows.length} / ${allData.length} REGISTROS`;
+  document.getElementById('tableWrap').innerHTML = `
+    <table>
+      <thead><tr>${columns.map(th).join('')}</tr></thead>
+      <tbody>${rows.map(r => `<tr>${columns.map(col => cell(col, r)).join('')}</tr>`).join('')}</tbody>
+    </table>`;
+}
+
+// ── RENDER ALL ───────────────────────────────────────────────────────────────
+
+function renderAll(data) {
+  columns = analyzeColumns(data);
+  const metrics = buildMetrics(data, columns);
+  const main = document.getElementById('mainContent');
+
+  const now = new Date().toLocaleString('es-AR', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+  document.getElementById('headerMeta').innerHTML = `ACTUALIZADO<br><span>${now}</span>`;
+  document.getElementById('statusDot').className = 'status-dot live';
+
+  main.innerHTML = `
+    <p class="section-label">MÉTRICAS DEL PERÍODO</p>
+    <div class="metrics-grid">
+      ${metrics.map(m => `
+        <div class="metric-card">
+          <div class="metric-label">${m.label}</div>
+          <div class="metric-value ${m.color}">${m.value}</div>
+          ${m.sub ? `<div class="metric-sub">${m.sub}</div>` : ''}
+          ${m.progress !== undefined ? `
+            <div class="prog-wrap">
+              <div class="prog-bar"><div class="prog-fill ${m.progColor}" style="width:${m.progress}%"></div></div>
+              <div class="prog-pct">${m.progress}%</div>
+            </div>` : ''}
+        </div>`).join('')}
+    </div>
+
+    <p class="section-label">EVOLUCIÓN TEMPORAL</p>
+    <div class="charts-grid" id="chartsGrid"></div>
+
+    <p class="section-label">DATOS COMPLETOS</p>
+    <div class="table-section">
+      <div class="table-topbar">
+        <span class="table-count" id="tableCount">— REGISTROS</span>
+        <input class="table-search" id="tableFilter" placeholder="🔍 Filtrar filas..."
+               oninput="applyFilter(this.value)" value="${filterVal}">
+      </div>
+      <div class="table-wrap" id="tableWrap"></div>
+    </div>
+  `;
+
+  buildCharts(data, columns);
+  renderTable();
+}
+
+// ── LOAD ─────────────────────────────────────────────────────────────────────
+
+async function loadData() {
+  const btn  = document.getElementById('refreshBtn');
+  const dot  = document.getElementById('statusDot');
+  const main = document.getElementById('mainContent');
+
+  btn.disabled = true;
+  btn.textContent = '⟳ SYNC';
+  dot.className = 'status-dot';
+
+  // Show loading overlay only when there's no data yet
+  if (!allData.length) {
+    main.innerHTML = `<div class="loading">
+      <div class="loading-text">CONECTANDO CON BASE DE DATOS</div>
+      <div class="loading-bar"></div>
+    </div>`;
+  }
+
+  try {
+    const res = await fetch(SCRIPT_URL, { method: 'GET', redirect: 'follow' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { throw new Error('Respuesta no es JSON válido'); }
+    if (!Array.isArray(data)) throw new Error('La respuesta no es un array');
+    if (!data.length) throw new Error('El sheet está vacío o no tiene datos');
+
+    allData = data;
+    renderAll(data);
+
+  } catch (err) {
+    dot.className = 'status-dot error';
+    document.getElementById('headerMeta').innerHTML = `ERROR<br><span style="color:var(--red)">—</span>`;
+
+    if (!allData.length) {
+      main.innerHTML = `
+        <div class="error-box">
+          <div class="error-title">⚠ ERROR AL CARGAR DATOS</div>
+          <div class="error-body">
+            <b>${err.message}</b><br><br>
+            Posibles causas:<br>
+            • El Apps Script no está publicado como "Cualquier persona puede acceder"<br>
+            • El script devuelve un error en Apps Script (verificá en Execution Log)<br>
+            • Problema temporal de conectividad
+            <br><br>
+            <b>Para re-publicar:</b> en Google Sheets → Extensiones → Apps Script → Implementar → Administrar implementaciones
+          </div>
+          <button class="refresh-btn" onclick="loadData()">↻ REINTENTAR</button>
+        </div>`;
+    }
+    // If we already have data, just leave the old data visible
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '↻ SYNC';
+  }
+}
+
+// Auto-load on open
+loadData();
+</script>
+</body>
+</html>
